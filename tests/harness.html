@@ -1,0 +1,17 @@
+<!doctype html><meta charset="utf-8"><title>OMR test harness</title>
+<script type="module">
+import { loadPages } from '../js/pages.js';
+import { recognizePage } from '../js/omr.js';
+import { detectSettings, buildScore } from '../js/score.js';
+window.runFixture = async (name) => {
+  const blob = await (await fetch('fixtures/' + name + '.pdf')).blob();
+  const file = new File([blob], name + '.pdf', { type: 'application/pdf' });
+  const pages = [];
+  for await (const p of loadPages(file)) pages.push(recognizePage(p.gray));
+  const settings = detectSettings(pages);
+  const score = buildScore(pages, settings);
+  return { settings, score, pages: pages.map(p => ({ il: p.il, skew: p.skew, systems: p.systems,
+    staves: p.staves.map(s => ({ clef: s.clef, key: s.key, bars: s.bars.length, x0: s.x0, x1: s.x1 })), heads: p.heads.length })) };
+};
+window.ready = true;
+</script>
