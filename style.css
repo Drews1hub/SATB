@@ -1,0 +1,94 @@
+:root {
+  --ink: #1d2230;
+  --muted: #6a7184;
+  --line: #dde1ea;
+  --bg: #f6f7fa;
+  --card: #fff;
+  --accent: #3a56d4;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+header, main, footer { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+header { padding-top: 28px; }
+h1 { margin: 0; font-size: 1.7rem; letter-spacing: -0.01em; }
+.tag { margin: 4px 0 18px; color: var(--muted); }
+.muted { color: var(--muted); font-size: 0.92rem; }
+footer { padding: 24px 20px 40px; }
+
+.drop {
+  background: var(--card);
+  border: 2px dashed var(--line);
+  border-radius: 14px;
+  padding: 22px 24px;
+  text-align: center;
+  transition: border-color .15s, background .15s;
+}
+.drop.over { border-color: var(--accent); background: #f0f3ff; }
+.drop p { margin: 4px 0; }
+.row { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+.status { min-height: 1.3em; margin-top: 12px !important; font-size: .95rem; }
+.status.error { color: #b3261e; }
+
+.btn {
+  font: inherit;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 9px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.btn:hover:not(:disabled) { border-color: #b9c0cf; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { background: #2f49bd; }
+.btn.small { padding: 4px 10px; }
+.btn:focus-visible, select:focus-visible, input:focus-visible, canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+#workspace { margin-top: 18px; }
+.transport {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px;
+}
+.play { min-width: 104px; }
+.tempo { display: flex; align-items: center; gap: 6px; font-size: .92rem; }
+.tempo output { font-variant-numeric: tabular-nums; min-width: 2.2em; text-align: right; }
+.parts { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.part {
+  display: flex; align-items: center; gap: 6px; font-size: .9rem;
+  border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px 4px 6px; background: #fff;
+}
+.part .sw { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.part input[type=range] { width: 70px; }
+.part.off { opacity: .5; }
+
+.tabs { display: flex; gap: 4px; margin: 18px 0 0; border-bottom: 1px solid var(--line); }
+.tabs button {
+  font: inherit; background: none; border: none; padding: 9px 14px; cursor: pointer; color: var(--muted);
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.tabs button[aria-selected=true] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+[data-panel] { padding-top: 14px; }
+
+.toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; font-size: .92rem; }
+select { font: inherit; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
+.roll {
+  height: 440px; overflow: auto; background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  position: relative;
+}
+.roll canvas { display: block; }
+.help { margin-top: 10px; font-size: .92rem; }
+.help ul { margin: 8px 0; padding-left: 20px; line-height: 1.6; }
+kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font-size: .85em; background: #fff; }
+
+.pages { display: flex; flex-direction: column; gap: 16px; }
+.page { position: relative; background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.page canvas { display: block; width: 100%; height: auto; }
+.page canvas.overlay { position: absolute; inset: 0; cursor: pointer; }
+
+.settings { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; font-size: .95rem; }
+.settings label { display: flex; flex-direction: column; gap: 4px; }
+.clefs { display: flex; gap: 12px; flex-wrap: wrap; }

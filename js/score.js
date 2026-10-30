@@ -94,26 +94,41 @@ function splitStaff(heads, il, homophonic) {
   const upper = [], lower = [];
   const asUp = (h) => ({ ...h, dur: h.durUp ?? h.dur });
   const asDown = (h) => ({ ...h, dur: h.durDown ?? h.dur });
-  for (const col of cols) {
+  // What kind of notation each column uses: separate up/down stems ("split"),
+  // several heads on one stem ("chord"), or a lone head ("single").
+  const kinds = cols.map((col) => {
+    const up = col.some((h) => h.stemUp), down = col.some((h) => h.stemDown);
+    if (col.length > 1 && up && down) return 'split';
+    if (col.length > 1) return 'chord';
+    return 'single';
+  });
+  // A lone head is shared by both voices in chord-style writing, but belongs to
+  // just one voice (by stem direction) where the voices have separate stems.
+  const loneIsShared = (i) => {
+    for (let d = 1; d < cols.length; d++) {
+      for (const j of [i - d, i + d]) {
+        if (j < 0 || j >= cols.length || kinds[j] === 'single') continue;
+        return kinds[j] === 'chord';
+      }
+    }
+    return homophonic;
+  };
+  cols.forEach((col, i) => {
     col.sort((a, b) => a.k - b.k); // top first
     const hasUp = col.some((h) => h.stemUp), hasDown = col.some((h) => h.stemDown);
     const top = col[0], bot = col[col.length - 1];
     if (col.length === 1) {
       const h = col[0];
-      if ((h.stemUp && h.stemDown) || (!h.stemUp && !h.stemDown) || homophonic) { upper.push(asUp(h)); lower.push(asDown(h)); }
+      if ((h.stemUp && h.stemDown) || (!h.stemUp && !h.stemDown) || loneIsShared(i)) { upper.push(asUp(h)); lower.push(asDown(h)); }
       else if (h.stemUp) upper.push(asUp(h));
       else lower.push(asDown(h));
-      continue;
+      return;
     }
-    if (hasUp && hasDown) { upper.push(asUp(top)); lower.push(asDown(bot)); continue; }
-    if (homophonic || (!hasUp && !hasDown)) {
-      const d = hasDown ? asDown : asUp;
-      upper.push(d(top)); lower.push(d(bot));
-      continue;
-    }
-    if (hasUp) upper.push(asUp(top));
-    else lower.push(asDown(bot));
-  }
+    if (hasUp && hasDown) { upper.push(asUp(top)); lower.push(asDown(bot)); return; }
+    const d = hasDown ? asDown : asUp;
+    upper.push(d(top));
+    lower.push(d(bot));
+  });
   return [upper, lower];
 }
 
@@ -151,6 +166,16 @@ export function buildScore(pages, settings) {
     homo.push(isHomophonic(hs, il));
   }
 
+  // Two passes: the first only learns the usual bar length (the time
+  // signature), which then settles bars where the voices disagree.
+  let usualBar = null;
+  const allSums = [];
+  for (const pass of [0, 1]) {
+  if (pass === 1) {
+    usualBar = mode(allSums);
+    for (const p of parts) p.notes = [];
+    time = 0;
+  }
   pages.forEach((page, pi) => {
     const il = page.il;
     for (const sys of systemsOf(page, settings)) {
@@ -208,7 +233,13 @@ export function buildScore(pages, settings) {
         const sums = evs.map((e) => e.reduce((s, ev) => s + ev.dur, 0));
         const nonEmpty = sums.filter((s) => s > 0);
         if (!nonEmpty.length) continue;
-        const target = mode(nonEmpty);
+        if (pass === 0) { allSums.push(...nonEmpty); continue; }
+        // Most voices agree on the bar length; on a tie prefer the usual length.
+        const counts = new Map();
+        for (const v of nonEmpty) counts.set(v, (counts.get(v) || 0) + 1);
+        const top = Math.max(...counts.values());
+        const tied = [...counts.keys()].filter((v) => counts.get(v) === top);
+        const target = tied.includes(usualBar) ? usualBar : tied.length > 1 ? Math.min(...tied) : tied[0];
         const refs = evs.filter((e, v) => sums[v] === target);
         // x -> beat lookup built from voices whose rhythm adds up.
         const pts = [[xa, 0], [xb, target]];
@@ -247,6 +278,7 @@ export function buildScore(pages, settings) {
       }
     }
   });
+  }
   for (const p of parts) p.notes.sort((a, b) => a.t - b.t || b.midi - a.midi);
   return { parts };
 }

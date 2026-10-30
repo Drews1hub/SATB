@@ -80,14 +80,49 @@ global = { %(key)s %(time)s %(partial)s }
 """
 
 
+# Hymnal style: parts that move together share one stem (LilyPond \partCombine).
+LY_COMBINED = r"""\version "2.24.0"
+\header { tagline = ##f }
+\paper { indent = 0 }
+global = { %(key)s %(time)s %(partial)s }
+\score {
+  \new ChoirStaff <<
+    \new Staff { \global \partCombine { %(S)s } { %(A)s } \bar "|." }
+    \new Staff { \clef bass \global \partCombine { %(T)s } { %(B)s } }
+  >>
+  \layout { }
+}
+"""
+
+# Open score: one staff per part, tenor in the octave treble clef.
+LY_FOUR = r"""\version "2.24.0"
+\header { tagline = ##f }
+\paper { indent = 0 }
+global = { %(key)s %(time)s %(partial)s }
+\score {
+  \new ChoirStaff <<
+    \new Staff { \global %(S)s \bar "|." }
+    \new Staff { \global %(A)s }
+    \new Staff { \clef "treble_8" \global %(T)s }
+    \new Staff { \clef bass \global %(B)s }
+  >>
+  \layout { }
+}
+"""
+
+VARIANTS = {"hymn_voices": LY, "hymn_flats": LY, "hymn_flats_combined": LY_COMBINED, "hymn_voices_combined": LY_COMBINED,
+            "hymn_voices_four": LY_FOUR}
+
+
 def strip(m):
     return m.replace("|", "")
 
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    for name, p in PIECES.items():
-        src = LY % {k: (strip(v) if k in "SATB" else v) for k, v in p.items()}
+    for name, tmpl in VARIANTS.items():
+        p = PIECES[name.replace("_combined", "").replace("_four", "")]
+        src = tmpl % {k: (strip(v) if k in "SATB" else v) for k, v in p.items()}
         ly = os.path.join(OUT, name + ".ly")
         open(ly, "w").write(src)
         subprocess.run(["lilypond", "-s", "-o", os.path.join(OUT, name), ly], check=True)

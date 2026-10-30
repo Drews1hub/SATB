@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SATB Hum-Along</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>SATB Hum-Along</h1>
+    <p class="tag">Upload four-part sheet music and hear soprano, alto, tenor and bass hummed together.</p>
+  </header>
+
+  <main>
+    <section id="drop" class="drop">
+      <p><strong>Drop a PDF, a photo of a page, or a MusicXML file here</strong></p>
+      <p class="muted">Clean PDFs exported from notation software read best. MusicXML (.musicxml, .mxl) is read exactly.</p>
+      <div class="row">
+        <label class="btn primary">Choose file…
+          <input id="file" type="file" accept=".pdf,application/pdf,image/*,.xml,.musicxml,.mxl" hidden>
+        </label>
+        <button id="example" class="btn">Try the example hymn</button>
+      </div>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section id="workspace" hidden>
+      <div class="transport">
+        <button id="play" class="btn primary play" aria-label="Play">▶ Play</button>
+        <button id="rewind" class="btn" aria-label="Back to start">⏮</button>
+        <label class="tempo">Tempo
+          <input id="tempo" type="range" min="40" max="180" value="80">
+          <output id="tempoOut">80</output> bpm
+        </label>
+        <div id="parts" class="parts"></div>
+      </div>
+
+      <nav class="tabs" role="tablist">
+        <button role="tab" data-tab="notes" aria-selected="true">Notes</button>
+        <button role="tab" data-tab="sheet" aria-selected="false">Check against the sheet</button>
+        <button role="tab" data-tab="settings" aria-selected="false">Reading settings</button>
+      </nav>
+
+      <div data-panel="notes">
+        <div class="toolbar">
+          <label>Add/edit part
+            <select id="activePart"></select>
+          </label>
+          <button id="zoomOut" class="btn small" aria-label="Zoom out">−</button>
+          <button id="zoomIn" class="btn small" aria-label="Zoom in">+</button>
+          <button id="undo" class="btn small" disabled>Undo</button>
+          <span id="selInfo" class="muted"></span>
+        </div>
+        <div id="roll" class="roll"></div>
+        <details class="help">
+          <summary>How to fix wrong notes</summary>
+          <ul>
+            <li>Click a note to select it (you'll hear it). Click empty space to move the start point.</li>
+            <li><kbd>↑</kbd>/<kbd>↓</kbd> change pitch by a half step (hold <kbd>Shift</kbd> for an octave).</li>
+            <li><kbd>←</kbd>/<kbd>→</kbd> select the previous/next note; <kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd> move it by half a beat.</li>
+            <li><kbd>+</kbd>/<kbd>−</kbd> make it longer/shorter. <kbd>Delete</kbd> removes it. Drag notes with the mouse.</li>
+            <li>Double-click empty space to add a note to the part chosen in “Add/edit part”.</li>
+          </ul>
+        </details>
+      </div>
+
+      <div data-panel="sheet" hidden>
+        <p class="muted">Each dot marks a note the reader found, coloured by part. Click one to select it in the editor.
+          Missing dots or wrong colours show where to fix things.</p>
+        <div id="pages" class="pages"></div>
+      </div>
+
+      <div data-panel="settings" hidden>
+        <p class="muted">The reader guesses these from the page. If the music sounds wrong throughout (every F a half step off,
+          parts swapped, a part an octave out), correct them here and re-read. Re-reading discards edits made in the Notes tab.</p>
+        <div class="settings">
+          <label>Key signature <select id="key"></select></label>
+          <label>Staves per line of music
+            <select id="staves">
+              <option value="2">2 — soprano &amp; alto on top, tenor &amp; bass below</option>
+              <option value="4">4 — one staff per part</option>
+              <option value="1">1 — all parts on one staff</option>
+            </select>
+          </label>
+          <div id="clefs" class="clefs"></div>
+          <button id="reread" class="btn primary">Re-read with these settings</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="muted">
+    Everything runs in your browser; your music is never uploaded anywhere.
+  </footer>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

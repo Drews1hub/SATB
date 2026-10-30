@@ -494,24 +494,43 @@ export function recognizePage(page) {
   };
 
   // ----- clefs, systems -----
+  // The clef is the first symbol after the staff start. Treble clefs stick out
+  // above and below the staff; bass clefs stay inside. Measured on the ink
+  // itself because staff-line removal can break clefs into pieces.
   const clefOf = (st) => {
-    let best = null;
+    // Look above/below the staff, but not past halfway to the neighbouring staff.
+    const i = staves.indexOf(st), prev = staves[i - 1], next = staves[i + 1];
+    let ya = st.lines[0] - il * 3.5, yb = st.lines[4] + il * 3.5;
+    if (prev) ya = Math.max(ya, (prev.lines[4] + st.lines[0]) / 2);
+    if (next) yb = Math.min(yb, (st.lines[4] + next.lines[0]) / 2);
+    ya = Math.max(0, Math.round(ya));
+    yb = Math.min(h - 1, Math.round(yb));
+    const ia = Math.round(st.lines[0] - il * 0.5), ib = Math.round(st.lines[4] + il * 0.5);
+    const colInk = (x, y0, y1) => { for (let y = y0; y <= y1; y++) if (nb[y * w + x]) return true; return false; };
+    let x = Math.round(st.x0 + il * 0.4);
+    const xMax = Math.round(st.x0 + il * 5);
+    while (x < xMax && !colInk(x, ia, ib)) x++;
+    if (x >= xMax) return { clef: null, right: st.x0 + il * 3 };
+    const x0 = x;
+    let gap = 0, right = x;
+    for (; x < xMax && gap < il * 0.35; x++) {
+      if (colInk(x, ya, yb)) { gap = 0; right = x; } else gap++;
+    }
+    if (right - x0 < il * 1.2) return { clef: null, right: st.x0 + il * 3 };
+    // Union of the pieces in that column range (ignoring the system bracket,
+    // whose curled tips reach over the staff).
+    let top = yb, bottom = ya;
     for (const c of comps) {
-      if (c.x0 < st.x0 - il * 0.5 || c.x0 > st.x0 + il * 2.5) continue;
-      if (c.w < il * 1.2 || c.h < il * 2.5 || c.h > il * 8.5) continue;
-      if (c.y1 < st.lines[0] - il || c.y0 > st.lines[4] + il) continue;
-      if (!best || c.h > best.h) best = c;
+      if (c.x1 < x0 || c.x0 > right || c.y1 < ya || c.y0 > yb) continue;
+      if (c.x0 < st.x0 || c.h > il * 9 || c.y0 < ya || c.y1 > yb) continue;
+      top = Math.min(top, c.y0);
+      bottom = Math.max(bottom, c.y1);
     }
-    if (!best) return { clef: null, right: st.x0 + il * 3 };
-    let clef = best.h > il * 5 ? 'treble' : 'bass';
-    if (clef === 'treble') {
-      // An "8" under the treble clef means the octave-lower tenor clef.
-      const below = best.y1 - st.lines[4];
-      const eight = comps.some((c) => c !== best && c.x1 > best.x0 && c.x0 < best.x1 &&
-        c.y0 > best.y1 - il * 0.6 && c.y0 < best.y1 + il * 1.2 && c.h > il * 0.6 && c.h < il * 1.8);
-      if (eight || below > il * 3.4) clef = 'treble8';
+    let clef = 'bass';
+    if (top < st.lines[0] - il * 0.8 || bottom > st.lines[4] + il * 0.8) {
+      clef = bottom > st.lines[4] + il * 2.4 ? 'treble8' : 'treble';
     }
-    return { clef, right: best.x1 };
+    return { clef, right };
   };
 
   staves.forEach((st, i) => {
@@ -583,21 +602,31 @@ export function recognizePage(page) {
     const cands = [];
     const xStart = Math.max(st.x0 + il * 2.8, st.headerX + il * 0.3);
     for (let k = -8; k <= 16; k++) {
-      let runStart = -1, runBest = 0;
-      const flush = (xEnd) => {
-        if (runStart >= 0) cands.push({ k, x: (runStart + xEnd) / 2, score: runBest });
-        runStart = -1; runBest = 0;
+      // Contiguous x positions that look like a head. A run can span a head plus
+      // a touching accidental or neighbour, so take score peaks, not the middle.
+      let run = [];
+      const flush = () => {
+        while (run.length) {
+          let best = 0;
+          for (let i = 1; i < run.length; i++) if (run[i].s > run[best].s) best = i;
+          let a = best, b = best;
+          while (a > 0 && run[a - 1].s >= run[best].s - 0.02) a--;
+          while (b < run.length - 1 && run[b + 1].s >= run[best].s - 0.02) b++;
+          const cx = (run[a].x + run[b].x) / 2;
+          cands.push({ k, x: cx, score: run[best].s });
+          run = run.filter((r) => Math.abs(r.x - cx) >= il * 0.9);
+          if (run.length && run.every((r) => Math.abs(r.x - cx) < il * 1.6)) break; // leftovers are edges
+        }
+        run = [];
       };
       for (let x = Math.round(xStart); x <= st.x1; x++) {
         const y = posY(st, k, x);
         const fa = fill(iiF, w, h, x - il * 0.35, y - il * 0.3, x + il * 0.35, y + il * 0.3);
         const fb = fa >= 0.88 ? fill(iiF, w, h, x - il * 0.2, y - il * 0.42, x + il * 0.2, y + il * 0.42) : 0;
-        if (fa >= 0.88 && fb >= 0.82) {
-          if (runStart < 0) runStart = x;
-          runBest = Math.max(runBest, fa + fb);
-        } else flush(x - 1);
+        if (fa >= 0.88 && fb >= 0.82) run.push({ x, s: fa + fb });
+        else if (run.length) flush();
       }
-      flush(st.x1);
+      flush();
     }
     cands.sort((a, b) => b.score - a.score);
     const kept = [];
