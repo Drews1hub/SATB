@@ -20,12 +20,13 @@ function canvasOf(w, h) {
 }
 
 /** Yields { canvas, gray } for each page. `scale` 2.8 ≈ 200 dpi. */
-export async function* loadPages(file, scale = 2.8) {
+export async function* loadPages(file, scale = 2.8, onProgress = () => {}) {
   const buf = await file.arrayBuffer();
   const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
   if (isPdf) {
     const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
     for (let n = 1; n <= pdf.numPages; n++) {
+      onProgress(n, pdf.numPages);
       const page = await pdf.getPage(n);
       const base = page.getViewport({ scale: 1 });
       const s = Math.min(scale, MAX_SIDE / Math.max(base.width, base.height));

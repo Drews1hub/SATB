@@ -37,9 +37,10 @@ async function openFile(file) {
     let n = 0;
     status('Opening ' + file.name + '…');
     await tick();
-    for await (const p of loadPages(file)) {
+    for await (const p of loadPages(file, undefined, (i, total) => {
+      status(`Reading page ${i} of ${total}…`);
+    })) {
       n++;
-      status(`Reading page ${n}…`);
       await tick();
       pages.push({ canvas: p.canvas, result: recognizePage(p.gray) });
     }
