@@ -1,4 +1,5 @@
 // Load a PDF or image file into page canvases sized for recognition.
+import './polyfills.js';
 import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
 import { imageDataToGray, estimateStaffSpace } from './omr.js';
 
